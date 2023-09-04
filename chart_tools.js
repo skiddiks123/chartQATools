@@ -11,6 +11,13 @@
 (function() {
     'use strict';
 
+    function userSettings() {
+        var settings = {};
+        TVSettings.keys().forEach(function(key) {
+            settings[key] = TVSettings.getValue(key);
+        });
+        console.log(settings);
+    };
 
     function layoutJSON() {
         var url = document.URL;
@@ -96,7 +103,7 @@
 
     // Add buttons to the menu
     menuContainer.appendChild(createButton('Layout JSON', layoutJSON));
-    menuContainer.appendChild(createButton('Sample Button 4', function() { alert('Sample Button 4 Clicked'); }));
+    menuContainer.appendChild(createButton('User settings', userSettings));
     menuContainer.appendChild(createButton('Sample Button 5', function() { alert('Sample Button 5 Clicked'); }));
 
     // Append the menu to the page body
