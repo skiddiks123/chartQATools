@@ -11,6 +11,16 @@
 (function() {
     'use strict';
 
+
+    function layoutJSON() {
+        var url = document.URL;
+        url = url.replace('chart', 'json');
+        fetch(url)
+            .then(response => response.text())
+            .then(data => console.log(data))
+            .catch(error => console.error(error));
+    };
+
     // Function to create the toggle button for log level
     function createToggleButton() {
         const button = document.createElement('button');
@@ -85,7 +95,7 @@
     menuContainer.appendChild(createToggleButton());
 
     // Add buttons to the menu
-    menuContainer.appendChild(createButton('Sample Button 3', function() { alert('Sample Button 3 Clicked'); }));
+    menuContainer.appendChild(createButton('Layout JSON', layoutJSON));
     menuContainer.appendChild(createButton('Sample Button 4', function() { alert('Sample Button 4 Clicked'); }));
     menuContainer.appendChild(createButton('Sample Button 5', function() { alert('Sample Button 5 Clicked'); }));
 
