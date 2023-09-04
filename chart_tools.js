@@ -28,6 +28,29 @@
             .catch(error => console.error(error));
     };
 
+    function allStudies() {
+        var scripts = {};
+        var charts = TradingViewApi._chartWidgetCollection.state().charts;
+
+        for (var i = 0; i < charts.length; i++) {
+            var panes = charts[i].panes;
+            var chartsCount = `Chart_${i + 1}`;
+            scripts[chartsCount] = [];
+            for (var n = 0; n < panes.length; n++) {
+                var sources = panes[n].sources;
+                for (var k = 0; k < sources.length; k++) {
+                    var src = sources[k];
+                    if (/study/i.test(src.type)) {
+                        var data = { description: src.metaInfo.description, scriptIdPart: src.metaInfo.scriptIdPart, fullId: src.metaInfo.fullId, meta: src.metaInfo };
+                        scripts[chartsCount].push(data);
+                    };
+                };
+            };
+        };
+
+        console.log(scripts);
+    };
+
     // Function to create the toggle button with options
     function createToggleButton(options) {
         const button = document.createElement('button');
@@ -113,7 +136,7 @@
     // Add buttons to the menu
     menuContainer.appendChild(createButton('Layout JSON', layoutJSON));
     menuContainer.appendChild(createButton('User settings', userSettings));
-    menuContainer.appendChild(createButton('Sample Button 5', function() { alert('Sample Button 5 Clicked'); }));
+    menuContainer.appendChild(createButton('All studies', allStudies));
 
     // Append the menu to the page body
     document.body.appendChild(menuContainer);
