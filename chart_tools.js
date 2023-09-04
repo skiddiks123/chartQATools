@@ -28,17 +28,15 @@
             .catch(error => console.error(error));
     };
 
-    // Function to create the toggle button for log level
-    function createToggleButton() {
+    // Function to create the toggle button with options
+    function createToggleButton(options) {
         const button = document.createElement('button');
-        const logLevel = localStorage.getItem('tv.logger.loglevel');
+        const conditionValue = localStorage.getItem(options.conditionKey);
 
-        if (logLevel === '3') {
-            button.innerText = 'Lon';
-        } else if (logLevel === '5') {
-            button.innerText = 'Loff';
-        }
+        // Set initial button text
+        button.innerText = conditionValue === options.conditionValue ? options.text1 : options.text2;
 
+        // button styles
         button.style.display = 'block';
         button.style.backgroundColor = '#2A66DD';
         button.style.color = '#fff';
@@ -49,13 +47,14 @@
         button.style.cursor = 'pointer';
 
         button.addEventListener('click', function() {
-            const logLevel = localStorage.getItem('tv.logger.loglevel');
-            if (logLevel === '3') {
-                lon(true);
-                button.innerText = 'Loff';
-            } else if (logLevel === '5') {
-                loff();
-                button.innerText = 'Lon';
+            const conditionValue = localStorage.getItem(options.conditionKey);
+
+            if (conditionValue === options.conditionValue1) {
+                options.action1();
+                button.innerText = options.text2;
+            } else {
+                options.action2();
+                button.innerText = options.text1
             }
         });
 
@@ -98,8 +97,18 @@
     menuTitle.style.marginBottom = '10px';
     menuContainer.appendChild(menuTitle);
 
-    // Add the toggle button to the menu
-    menuContainer.appendChild(createToggleButton());
+    // Add the log toggle button
+    const logToggleButton = createToggleButton({
+        conditionKey: 'tv.logger.loglevel',
+        conditionValue1: '3',
+        conditionValue2: '5',
+        text1: 'Lon',
+        text2: 'Loff',
+        action1: function() { lon(true) },
+        action2: function() { loff() },
+    });
+
+    menuContainer.appendChild(logToggleButton);
 
     // Add buttons to the menu
     menuContainer.appendChild(createButton('Layout JSON', layoutJSON));
