@@ -12,9 +12,8 @@
     'use strict';
 
     // Function to create the toggle button for log level
-    function createToggleButton() {
+    function createToggleButton(logLevel) {
         const button = document.createElement('button');
-        const logLevel = localStorage.getItem('tv.logger.loglevel');
 
         if (logLevel === '3') {
             button.innerText = 'Lon';
@@ -61,6 +60,9 @@
         return button;
     }
 
+    // Define the current log level
+    const logLevel = localStorage.getItem('tv.logger.loglevel');
+    
     // Create the menu container
     const menuContainer = document.createElement('div');
     menuContainer.style.position = 'fixed';
@@ -82,7 +84,7 @@
     menuContainer.appendChild(menuTitle);
 
     // Add the toggle button to the menu
-    menuContainer.appendChild(createToggleButton());
+    menuContainer.appendChild(createToggleButton(logLevel));
 
     // Add buttons to the menu
     menuContainer.appendChild(createButton('Sample Button 3', function() { alert('Sample Button 3 Clicked'); }));
