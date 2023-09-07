@@ -51,6 +51,35 @@
         console.log(scripts);
     };
 
+    function displayFeatureToggles() {
+        const featureTogglesList = document.createElement('ul');
+        featureTogglesList.style.listStyleType = 'none';
+        featureTogglesList.style.marginTop = '10px';
+        featureTogglesList.style.fontSize = '0.8rem';
+        featureTogglesList.style.color = '#a0a0a0';
+
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+
+            if (key && key.includes('forcefeaturetoggle')) {
+                const cleanedKey = key.replace('forcefeaturetoggle.', '');
+                const value = localStorage.getItem(key);
+
+                const listItem = document.createElement('li');
+                listItem.innerText = `${cleanedKey}: ${value}`;
+                featureTogglesList.appendChild(listItem);
+            }
+        }
+
+        const listTitle = document.createElement('h3');
+        listTitle.innerText = 'Featuretoggle overrides';
+        listTitle.style.marginTop = '20px';
+        listTitle.style.color = '#a0a0a0';
+
+        menuContainer.appendChild(listTitle);
+        menuContainer.appendChild(featureTogglesList);
+    }
+
     // Function to create the toggle button with options
     function createToggleButton(options) {
         const button = document.createElement('button');
@@ -175,4 +204,6 @@
             }
         }
     });
+
+    displayFeatureToggles();
 })();
