@@ -137,7 +137,7 @@
         const conditionValue = localStorage.getItem(options.conditionKey);
 
         // Set initial button text
-        button.innerText = conditionValue === options.conditionValue ? options.text1 : options.text2;
+        button.innerText = conditionValue === String(options.conditionValue1) ? options.text1 : options.text2;
 
         // button styles
         applyStyles(button, STYLES.button);
@@ -145,7 +145,7 @@
         button.addEventListener('click', function() {
             const conditionValue = localStorage.getItem(options.conditionKey);
 
-            if (conditionValue === options.conditionValue1) {
+            if (conditionValue === String(options.conditionValue1)) {
                 options.action1();
                 button.innerText = options.text2;
             } else {
