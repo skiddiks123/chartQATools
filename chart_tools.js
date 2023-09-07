@@ -11,6 +11,61 @@
 (function() {
     'use strict';
 
+    const STYLES = {
+        menuContainer: {
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            zIndex: '9999',
+            backgroundColor: '#1C2733',
+            border: '1px solid #2E4052',
+            borderRadius: '4px',
+            padding: '10px',
+            color: '#fff',
+            display: 'none' // Initially hidden
+        },
+        menuHeader: {
+            display: 'flex',
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            color: '#a0a0a0',
+            marginBottom: '20px',
+        },
+        closeButton: {
+            cursor: 'pointer',
+            marginLeft: 'auto',
+            fontSize: '10px'
+        },
+        button: {
+            display: 'block',
+            backgroundColor: '#2A66DD',
+            color: '#fff',
+            border: 'none',
+            padding: '10px',
+            marginTop: '5px',
+            borderRadius: '4px',
+            cursor: 'pointer',
+        },
+        featureTogglesList: {
+            listStyleType: 'none',
+            marginTop: '10px',
+            fontSize: '12px',
+            color: '#a0a0a0',
+        },
+        listTitle: {
+            marginTop: '20px',
+            color: '#a0a0a0',
+            fontSize: '15px'
+        }
+    };
+
+    function applyStyles(element, styleObject) {
+        for (const [key, value] of Object.entries(styleObject)) {
+            element.style[key] = value;
+        }
+    }
+
+
     function userSettings() {
         var settings = {};
         TVSettings.keys().forEach(function(key) {
@@ -53,10 +108,7 @@
 
     function displayFeatureToggles() {
         const featureTogglesList = document.createElement('ul');
-        featureTogglesList.style.listStyleType = 'none';
-        featureTogglesList.style.marginTop = '10px';
-        featureTogglesList.style.fontSize = '0.8rem';
-        featureTogglesList.style.color = '#a0a0a0';
+        applyStyles(featureTogglesList, STYLES.featureTogglesList);
 
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
@@ -73,8 +125,7 @@
 
         const listTitle = document.createElement('h3');
         listTitle.innerText = 'Featuretoggle overrides';
-        listTitle.style.marginTop = '20px';
-        listTitle.style.color = '#a0a0a0';
+        applyStyles(listTitle, STYLES.listTitle);
 
         menuContainer.appendChild(listTitle);
         menuContainer.appendChild(featureTogglesList);
@@ -89,14 +140,7 @@
         button.innerText = conditionValue === options.conditionValue ? options.text1 : options.text2;
 
         // button styles
-        button.style.display = 'block';
-        button.style.backgroundColor = '#2A66DD';
-        button.style.color = '#fff';
-        button.style.border = 'none';
-        button.style.padding = '10px';
-        button.style.marginTop = '5px';
-        button.style.borderRadius = '4px';
-        button.style.cursor = 'pointer';
+        applyStyles(button, STYLES.button);
 
         button.addEventListener('click', function() {
             const conditionValue = localStorage.getItem(options.conditionKey);
@@ -117,44 +161,24 @@
     function createButton(text, callback) {
         const button = document.createElement('button');
         button.innerText = text;
-        button.style.display = 'block'; // Make sure the button takes up the full width and displays as a block-level element
-        button.style.backgroundColor = '#2A66DD';
-        button.style.color = '#fff';
-        button.style.border = 'none';
-        button.style.padding = '10px';
-        button.style.marginTop = '5px';
-        button.style.borderRadius = '4px';
-        button.style.cursor = 'pointer';
+        applyStyles(button, STYLES.button);
         button.addEventListener('click', callback);
         return button;
     }
 
     // Create the menu container
     const menuContainer = document.createElement('div');
-    menuContainer.style.position = 'fixed';
-    menuContainer.style.top = '20px';
-    menuContainer.style.right = '20px';
-    menuContainer.style.zIndex = '9999';
-    menuContainer.style.backgroundColor = '#1C2733';
-    menuContainer.style.border = '1px solid #2E4052';
-    menuContainer.style.borderRadius = '4px';
-    menuContainer.style.padding = '10px';
-    menuContainer.style.color = '#fff';
-    menuContainer.style.display = 'none'; // Initially hidden
+    applyStyles(menuContainer, STYLES.menuContainer);
 
     const menuHeader = document.createElement('div');
-    menuHeader.style.display = 'flex';
-    menuHeader.style.flexDirection = 'row';
-    menuHeader.style.justifyContent = 'space-between';
+    applyStyles(menuHeader, STYLES.menuHeader);
 
     const menuTitle = document.createElement('span');
     menuTitle.innerText = 'QA Menu';
 
     const closeButton = document.createElement('span');
     closeButton.innerText = '✖';
-    closeButton.style.cursor = 'pointer';
-    closeButton.style.marginLeft = 'auto';
-    closeButton.style.fontSize = '15px';
+    applyStyles(closeButton, STYLES.closeButton);
 
     closeButton.addEventListener('click', function() {
         menuContainer.style.display = 'none';
