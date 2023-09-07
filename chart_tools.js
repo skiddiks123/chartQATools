@@ -1,9 +1,9 @@
 // ==UserScript==
-// @name         TradingView Custom Menu
+// @name         Chart QA Tools
 // @namespace    http://tampermonkey.net/
 // @version      0.1
-// @description  Add a custom menu to TradingView chart page
-// @author       You
+// @description  Tools for chart QA
+// @author       dulashenko
 // @match        */chart/*
 // @grant        none
 // ==/UserScript==
@@ -113,12 +113,34 @@
     menuContainer.style.color = '#fff';
     menuContainer.style.display = 'none'; // Initially hidden
 
-    // Create a title for the menu
-    const menuTitle = document.createElement('h4');
+    const menuHeader = document.createElement('div');
+    menuHeader.style.display = 'flex';
+    menuHeader.style.flexDirection = 'row';
+    menuHeader.style.justifyContent = 'space-between';
+
+    const menuTitle = document.createElement('span');
     menuTitle.innerText = 'QA Menu';
-    menuTitle.style.marginTop = '0';
-    menuTitle.style.marginBottom = '10px';
-    menuContainer.appendChild(menuTitle);
+
+    const closeButton = document.createElement('span');
+    closeButton.innerText = '✖';
+    closeButton.style.cursor = 'pointer';
+    closeButton.style.marginLeft = 'auto';
+    closeButton.style.fontSize = '15px';
+
+    closeButton.addEventListener('click', function() {
+        menuContainer.style.display = 'none';
+        localStorage.setItem('QAMenuVisibility', 'none');
+    });
+
+    menuHeader.appendChild(menuTitle);
+    menuHeader.appendChild(closeButton);
+    menuContainer.appendChild(menuHeader);
+
+    document.body.appendChild(menuContainer);
+
+    // Get menu visibility from local storage
+    const menuVisibility = localStorage.getItem('QAMenuVisibility');
+    menuContainer.style.display = menuVisibility === 'block' ? 'block' : 'none';
 
     // Add the log toggle button
     const logToggleButton = createToggleButton({
@@ -146,8 +168,10 @@
         if (event.altKey && event.code === 'KeyQ') {
             if (menuContainer.style.display === 'none') {
                 menuContainer.style.display = 'block';
+                localStorage.setItem('QAMenuVisibility', 'block')
             } else {
                 menuContainer.style.display = 'none';
+                localStorage.setItem('QAMenuVisibility', 'none');
             }
         }
     });
