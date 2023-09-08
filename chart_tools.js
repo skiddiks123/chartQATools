@@ -84,24 +84,21 @@
     };
 
     function allStudies() {
-        var scripts = {};
-        var charts = TradingViewApi._chartWidgetCollection.state().charts;
+        const charts = TradingViewApi._chartWidgetCollection.state().charts;
+        const scripts = charts.map((chart, chartIndex) => {
+            const studies = chart.panes.flatMap(pane => {
+                return pane.sources.filter(source => /study/i.test(source.type)).map(source => ({
+                    description: source.metaInfo.description,
+                    scriptIdPart: source.metaInfo.scriptIdPart,
+                    fullId: source.metaInfo.fullId,
+                    meta: source.metaInfo
+                }));
+            });
 
-        for (var i = 0; i < charts.length; i++) {
-            var panes = charts[i].panes;
-            var chartsCount = `Chart_${i + 1}`;
-            scripts[chartsCount] = [];
-            for (var n = 0; n < panes.length; n++) {
-                var sources = panes[n].sources;
-                for (var k = 0; k < sources.length; k++) {
-                    var src = sources[k];
-                    if (/study/i.test(src.type)) {
-                        var data = { description: src.metaInfo.description, scriptIdPart: src.metaInfo.scriptIdPart, fullId: src.metaInfo.fullId, meta: src.metaInfo };
-                        scripts[chartsCount].push(data);
-                    };
-                };
+            return {
+                [`Chart_${chartIndex + 1}`]: studies
             };
-        };
+        }).reduce((acc, curr) => Object.assign(acc, curr), {});
 
         console.log(scripts);
     };
