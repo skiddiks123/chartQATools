@@ -59,6 +59,73 @@
         }
     };
 
+    const TV_INPUT_STYLES = {
+        backgroundColor: '#2A2E37',
+        marginTop: '20px',
+        border: '1px solid #3A3E4A',
+        borderRadius: '4px',
+        color: '#fff',
+        fontSize: '14px',
+        padding: '8px 12px',
+        width: '100%',
+        boxSizing: 'border-box',
+        outline: 'none',
+        transition: 'border-color 0.3s ease',
+    };
+
+    const CONTAINER_STYLES = {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+    };
+
+    const BUTTON_STYLES = {
+        backgroundColor: '#2A66DD',
+        marginTop: '10px',
+        color: '#fff',
+        border: 'none',
+        borderRadius: '4px',
+        padding: '8px 12px',
+        cursor: 'pointer',
+        outline: 'none',
+        transition: 'background-color 0.3s ease',
+    };
+
+    const BUTTON_HOVER_STYLES = {
+        backgroundColor: '#1E4D8D',
+    };
+
+    const AUTOCOMPLETE_STYLES = {
+        backgroundColor: '#1C2733',
+        border: '1px solid #2E4052',
+        borderRadius: '4px',
+        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
+        color: '#a0a0a0',
+        width: '100%',
+        position: 'absolute',
+        zIndex: '1000',
+        marginTop: '5px',
+        position: 'absolute',
+        top: '100%', // under input
+        left: '0',
+    };
+
+    const ITEM_STYLES = {
+        padding: '8px',
+        borderBottom: '1px solid #2E4052',
+        cursor: 'pointer',
+        transition: 'background-color 0.3s ease',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+    };
+
+    const ITEM_HOVER_STYLES = {
+        backgroundColor: '#2A66DD',
+        color: '#fff'
+    };
+
+
     function applyStyles(element, styleObject) {
         for (const [key, value] of Object.entries(styleObject)) {
             element.style[key] = value;
@@ -230,4 +297,84 @@
     });
 
     displayFeatureToggles();
+
+    const inputWrapper = document.createElement('div');
+    inputWrapper.style.position = 'relative';
+    menuContainer.appendChild(inputWrapper);
+
+    const inputButtonContainer = document.createElement('div');
+    applyStyles(inputButtonContainer, CONTAINER_STYLES);
+
+    // Добавляем инпут
+    const featureToggleInput = document.createElement('input');
+    featureToggleInput.placeholder = 'Enter featuretoggle name...';
+
+    featureToggleInput.addEventListener('focus', function() {
+        this.style.borderColor = '#2A66DD'; // TradingView blue on focus
+    });
+
+    featureToggleInput.addEventListener('blur', function() {
+        this.style.borderColor = TV_INPUT_STYLES.border.split(' ')[2]; // Reset to default border color
+    });
+
+    applyStyles(featureToggleInput, TV_INPUT_STYLES);
+
+    // Autocompletion
+    const autoCompleteBox = document.createElement('div');
+    applyStyles(autoCompleteBox, AUTOCOMPLETE_STYLES);
+    autoCompleteBox.style.display = 'none';  // initially hidden
+
+    featureToggleInput.addEventListener('input', function() {
+        const value = featureToggleInput.value.trim();
+        autoCompleteBox.innerHTML = '';
+        autoCompleteBox.style.display = 'none';
+
+        if (value) {
+            const suggestions = Object.keys(featureToggleState).filter(toggle => toggle.includes(value));
+
+            if (suggestions.length) {
+                suggestions.forEach(suggestion => {
+                    const item = document.createElement('div');
+                    item.innerText = suggestion;
+                    applyStyles(item, ITEM_STYLES);
+
+                    item.addEventListener('mouseover', function() {
+                        applyStyles(item, ITEM_HOVER_STYLES);
+                    });
+
+                    item.addEventListener('mouseout', function() {
+                        item.style.backgroundColor = ITEM_STYLES.backgroundColor || 'transparent';
+                        item.style.color = ITEM_STYLES.color || '#a0a0a0';
+                    });
+
+                    item.addEventListener('click', function() {
+                        featureToggleInput.value = suggestion;
+                        autoCompleteBox.style.display = 'none';
+                    });
+
+                    autoCompleteBox.appendChild(item);
+                });
+                autoCompleteBox.style.display = 'block';
+            }
+        }
+    });
+
+    const featureToggleButton = document.createElement('button');
+    featureToggleButton.innerText = "Set";
+    applyStyles(featureToggleButton, BUTTON_STYLES);
+
+    featureToggleButton.addEventListener('mouseover', function() {
+        applyStyles(featureToggleButton, BUTTON_HOVER_STYLES);
+    });
+
+    featureToggleButton.addEventListener('mouseout', function() {
+        featureToggleButton.style.backgroundColor = BUTTON_STYLES.backgroundColor;
+    });
+
+    inputWrapper.appendChild(featureToggleInput);
+    inputButtonContainer.appendChild(featureToggleButton);
+    inputWrapper.appendChild(autoCompleteBox);
+
+    menuContainer.appendChild(inputButtonContainer);
+
 })();
