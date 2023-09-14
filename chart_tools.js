@@ -161,6 +161,13 @@
         left: '15px',
     };
 
+    const TOGGLE_AND_DELETE_CONTAINER_STYLES = {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '5px', // Отступ между элементами
+    };
+    
+
     function removeStyles(element, styleObject) {
         for (const key in styleObject) {
             element.style[key] = '';
@@ -210,15 +217,6 @@
         console.log(scripts);
     };
 
-    function initializeFeatureToggles() {
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key && key.includes('forcefeaturetoggle')) {
-                addFeatureToggle(key);
-            }
-        }
-    }
-
     // Create the menu container
 
     function createContainer () {
@@ -265,6 +263,11 @@
         label.innerText = `${cleanedKey}: `;
         listItem.appendChild(label);
 
+        featureTogglesList.appendChild(listItem);
+
+        const toggleAndDeleteContainer = document.createElement('div');
+        applyStyles(toggleAndDeleteContainer, TOGGLE_AND_DELETE_CONTAINER_STYLES);
+
         const toggleContainer = document.createElement('div');
         applyStyles(toggleContainer, TOGGLE_STYLES);
         if (value) {
@@ -291,8 +294,22 @@
             }
         });
 
-        listItem.appendChild(toggleContainer);
-        featureTogglesList.appendChild(listItem);
+        const deleteButton = document.createElement('span');
+        deleteButton.innerText = '✖';
+        applyStyles(deleteButton, STYLES.closeButton);
+        
+
+        deleteButton.addEventListener('click', function() {
+            // Удалить элемент из DOM
+            featureTogglesList.removeChild(listItem);
+        
+            // Удалить запись из localStorage
+            localStorage.removeItem(key);
+        });
+        
+        toggleAndDeleteContainer.appendChild(toggleContainer);
+        toggleAndDeleteContainer.appendChild(deleteButton);
+        listItem.appendChild(toggleAndDeleteContainer); 
     }
 
         const listTitle = document.createElement('h3');
@@ -302,7 +319,7 @@
         menuContainer.appendChild(listTitle);
         menuContainer.appendChild(featureTogglesList);
 
-    // Function to create the toggle button with options
+        // Function to create the toggle button with options
     function createToggleButton(options) {
         const button = document.createElement('button');
         const conditionValue = localStorage.getItem(options.conditionKey);
@@ -326,6 +343,15 @@
         });
 
         return button;
+    }
+
+    function initializeFeatureToggles() {
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.includes('forcefeaturetoggle')) {
+                addFeatureToggle(key);
+            }
+        }
     }
 
     // Function to create a button
