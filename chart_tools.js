@@ -56,6 +56,12 @@
             marginTop: '20px',
             color: '#a0a0a0',
             fontSize: '15px'
+        },
+        listItem: {
+            display: 'flex',
+            justifyContent: 'space-between', // Это свойство растягивает содержимое между левым и правым краями
+            alignItems: 'center',
+            padding: '5px 0',
         }
     };
 
@@ -125,6 +131,44 @@
         color: '#fff'
     };
 
+    const TOGGLE_STYLES = {
+        width: '30px',
+        height: '10px',
+        borderRadius: '15px',
+        display: 'inline-block',
+        position: 'relative',
+        cursor: 'pointer',
+        backgroundColor: 'gray',
+        transition: 'background-color 0.2s',
+    };
+
+    const TOGGLE_THUMB_STYLES = {
+        width: '14px',
+        height: '14px',
+        borderRadius: '50%',
+        backgroundColor: 'white',
+        position: 'absolute',
+        top: '-2px',
+        left: '1px',
+        transition: 'left 0.2s',
+    };
+
+    const TOGGLE_ON_STYLES = {
+        backgroundColor: '#4CAF50',
+    };
+
+    const TOGGLE_THUMB_ON_STYLES = {
+        left: '15px',
+    };
+
+
+
+    function removeStyles(element, styleObject) {
+        for (const key in styleObject) {
+            element.style[key] = '';
+        }
+    }
+
 
     function applyStyles(element, styleObject) {
         for (const [key, value] of Object.entries(styleObject)) {
@@ -170,19 +214,86 @@
         console.log(scripts);
     };
 
+
+    // Create the menu container
+
+    function createContainer () {
+        const menuContainer = document.createElement('div');
+        applyStyles(menuContainer, STYLES.menuContainer);
+
+        const menuHeader = document.createElement('div');
+        applyStyles(menuHeader, STYLES.menuHeader);
+
+        const menuTitle = document.createElement('span');
+        menuTitle.innerText = 'QA Menu';
+
+        const closeButton = document.createElement('span');
+        closeButton.innerText = '✖';
+        applyStyles(closeButton, STYLES.closeButton);
+
+        closeButton.addEventListener('click', function() {
+            menuContainer.style.display = 'none';
+            localStorage.setItem('QAMenuVisibility', 'none');
+        });
+
+        menuHeader.appendChild(menuTitle);
+        menuHeader.appendChild(closeButton);
+        menuContainer.appendChild(menuHeader);
+
+        document.body.appendChild(menuContainer);
+    }
+
+    createContainer();
+
+    const featureTogglesList = document.createElement('ul');
+    applyStyles(featureTogglesList, STYLES.featureTogglesList);
+
     function displayFeatureToggles() {
-        const featureTogglesList = document.createElement('ul');
-        applyStyles(featureTogglesList, STYLES.featureTogglesList);
+        while (featureTogglesList.firstChild) {
+            featureTogglesList.removeChild(featureTogglesList.firstChild);
+        }
 
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
 
             if (key && key.includes('forcefeaturetoggle')) {
                 const cleanedKey = key.replace('forcefeaturetoggle.', '');
-                const value = localStorage.getItem(key);
+                const value = localStorage.getItem(key) === "true";
 
                 const listItem = document.createElement('li');
-                listItem.innerText = `${cleanedKey}: ${value}`;
+                applyStyles(listItem, STYLES.listItem);
+
+                const label = document.createElement('span');
+                label.innerText = `${cleanedKey}: `;
+                listItem.appendChild(label);
+
+                const toggleContainer = document.createElement('div');
+                applyStyles(toggleContainer, TOGGLE_STYLES);
+                if (value) {
+                    applyStyles(toggleContainer, TOGGLE_ON_STYLES);
+                }
+
+                const toggleThumb = document.createElement('div');
+                applyStyles(toggleThumb, TOGGLE_THUMB_STYLES);
+                if (value) {
+                    applyStyles(toggleThumb, TOGGLE_THUMB_ON_STYLES);
+                }
+                toggleContainer.appendChild(toggleThumb);
+
+                toggleContainer.addEventListener('click', function() {
+                    const currentValue = localStorage.getItem(key) === "true";
+                    localStorage.setItem(key, String(!currentValue));
+
+                    if (currentValue) {
+                        removeStyles(toggleContainer, TOGGLE_ON_STYLES);
+                        removeStyles(toggleThumb, TOGGLE_THUMB_ON_STYLES);
+                    } else {
+                        applyStyles(toggleContainer, TOGGLE_ON_STYLES);
+                        applyStyles(toggleThumb, TOGGLE_THUMB_ON_STYLES);
+                    }
+                });
+
+                listItem.appendChild(toggleContainer);
                 featureTogglesList.appendChild(listItem);
             }
         }
@@ -194,6 +305,7 @@
         menuContainer.appendChild(listTitle);
         menuContainer.appendChild(featureTogglesList);
     }
+
 
     // Function to create the toggle button with options
     function createToggleButton(options) {
@@ -230,30 +342,7 @@
         return button;
     }
 
-    // Create the menu container
-    const menuContainer = document.createElement('div');
-    applyStyles(menuContainer, STYLES.menuContainer);
 
-    const menuHeader = document.createElement('div');
-    applyStyles(menuHeader, STYLES.menuHeader);
-
-    const menuTitle = document.createElement('span');
-    menuTitle.innerText = 'QA Menu';
-
-    const closeButton = document.createElement('span');
-    closeButton.innerText = '✖';
-    applyStyles(closeButton, STYLES.closeButton);
-
-    closeButton.addEventListener('click', function() {
-        menuContainer.style.display = 'none';
-        localStorage.setItem('QAMenuVisibility', 'none');
-    });
-
-    menuHeader.appendChild(menuTitle);
-    menuHeader.appendChild(closeButton);
-    menuContainer.appendChild(menuHeader);
-
-    document.body.appendChild(menuContainer);
 
     // Get menu visibility from local storage
     const menuVisibility = localStorage.getItem('QAMenuVisibility');
@@ -359,6 +448,19 @@
     const featureToggleButton = document.createElement('button');
     featureToggleButton.innerText = "Set";
     applyStyles(featureToggleButton, BUTTON_STYLES);
+
+    function handleSetButtonClick() {
+        const inputValue = featureToggleInput.value;
+        if (inputValue) {
+            localStorage.setItem('forcefeaturetoggle.' + inputValue, 'true');
+            const listItem = document.createElement('li');
+            listItem.textContent = inputValue;
+            featureTogglesList.appendChild(listItem);
+            displayFeatureToggles();
+        }
+    }
+
+    featureToggleButton.onclick = handleSetButtonClick;
 
     featureToggleButton.addEventListener('mouseover', function() {
         applyStyles(featureToggleButton, BUTTON_HOVER_STYLES);
