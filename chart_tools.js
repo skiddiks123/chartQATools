@@ -56,12 +56,18 @@
             marginTop: '20px',
             color: '#a0a0a0',
             fontSize: '15px'
+        },
+        listItem: {
+            display: 'flex',
+            justifyContent: 'space-between', // Это свойство растягивает содержимое между левым и правым краями
+            alignItems: 'center',
+            padding: '5px 0',
         }
     };
 
     const TV_INPUT_STYLES = {
         backgroundColor: '#2A2E37',
-        marginTop: '20px',
+        marginTop: '10px',
         border: '1px solid #3A3E4A',
         borderRadius: '4px',
         color: '#fff',
@@ -125,13 +131,47 @@
         color: '#fff'
     };
 
+    const TOGGLE_STYLES = {
+        width: '30px',
+        height: '10px',
+        borderRadius: '15px',
+        display: 'inline-block',
+        position: 'relative',
+        cursor: 'pointer',
+        backgroundColor: 'gray',
+        transition: 'background-color 0.2s',
+    };
+
+    const TOGGLE_THUMB_STYLES = {
+        width: '14px',
+        height: '14px',
+        borderRadius: '50%',
+        backgroundColor: 'white',
+        position: 'absolute',
+        top: '-2px',
+        left: '1px',
+        transition: 'left 0.2s',
+    };
+
+    const TOGGLE_ON_STYLES = {
+        backgroundColor: '#4CAF50',
+    };
+
+    const TOGGLE_THUMB_ON_STYLES = {
+        left: '15px',
+    };
+
+    function removeStyles(element, styleObject) {
+        for (const key in styleObject) {
+            element.style[key] = '';
+        }
+    }
 
     function applyStyles(element, styleObject) {
         for (const [key, value] of Object.entries(styleObject)) {
             element.style[key] = value;
         }
     }
-
 
     function userSettings() {
         var settings = {};
@@ -170,22 +210,90 @@
         console.log(scripts);
     };
 
-    function displayFeatureToggles() {
-        const featureTogglesList = document.createElement('ul');
-        applyStyles(featureTogglesList, STYLES.featureTogglesList);
-
+    function initializeFeatureToggles() {
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
-
             if (key && key.includes('forcefeaturetoggle')) {
-                const cleanedKey = key.replace('forcefeaturetoggle.', '');
-                const value = localStorage.getItem(key);
-
-                const listItem = document.createElement('li');
-                listItem.innerText = `${cleanedKey}: ${value}`;
-                featureTogglesList.appendChild(listItem);
+                addFeatureToggle(key);
             }
         }
+    }
+
+    // Create the menu container
+
+    function createContainer () {
+        const menuContainer = document.createElement('div');
+        applyStyles(menuContainer, STYLES.menuContainer);
+
+        const menuHeader = document.createElement('div');
+        applyStyles(menuHeader, STYLES.menuHeader);
+
+        const menuTitle = document.createElement('span');
+        menuTitle.innerText = 'QA Menu';
+
+        const closeButton = document.createElement('span');
+        closeButton.innerText = '✖';
+        applyStyles(closeButton, STYLES.closeButton);
+
+        closeButton.addEventListener('click', function() {
+            menuContainer.style.display = 'none';
+            localStorage.setItem('QAMenuVisibility', 'none');
+        });
+
+        menuHeader.appendChild(menuTitle);
+        menuHeader.appendChild(closeButton);
+        menuContainer.appendChild(menuHeader);
+
+        document.body.appendChild(menuContainer);
+
+        return menuContainer;
+    }
+
+    const menuContainer = createContainer();
+
+    const featureTogglesList = document.createElement('ul');
+    applyStyles(featureTogglesList, STYLES.featureTogglesList);
+
+    function addFeatureToggle(key) {
+        const cleanedKey = key.replace('forcefeaturetoggle.', '');
+        const value = localStorage.getItem(key) === "true";
+
+        const listItem = document.createElement('li');
+        applyStyles(listItem, STYLES.listItem);
+
+        const label = document.createElement('span');
+        label.innerText = `${cleanedKey}: `;
+        listItem.appendChild(label);
+
+        const toggleContainer = document.createElement('div');
+        applyStyles(toggleContainer, TOGGLE_STYLES);
+        if (value) {
+            applyStyles(toggleContainer, TOGGLE_ON_STYLES);
+        }
+
+        const toggleThumb = document.createElement('div');
+        applyStyles(toggleThumb, TOGGLE_THUMB_STYLES);
+        if (value) {
+            applyStyles(toggleThumb, TOGGLE_THUMB_ON_STYLES);
+        }
+        toggleContainer.appendChild(toggleThumb);
+
+        toggleContainer.addEventListener('click', function() {
+            const currentValue = localStorage.getItem(key) === "true";
+            localStorage.setItem(key, String(!currentValue));
+
+            if (currentValue) {
+                removeStyles(toggleContainer, TOGGLE_ON_STYLES);
+                removeStyles(toggleThumb, TOGGLE_THUMB_ON_STYLES);
+            } else {
+                applyStyles(toggleContainer, TOGGLE_ON_STYLES);
+                applyStyles(toggleThumb, TOGGLE_THUMB_ON_STYLES);
+            }
+        });
+
+        listItem.appendChild(toggleContainer);
+        featureTogglesList.appendChild(listItem);
+    }
 
         const listTitle = document.createElement('h3');
         listTitle.innerText = 'Featuretoggle overrides';
@@ -193,7 +301,6 @@
 
         menuContainer.appendChild(listTitle);
         menuContainer.appendChild(featureTogglesList);
-    }
 
     // Function to create the toggle button with options
     function createToggleButton(options) {
@@ -230,70 +337,9 @@
         return button;
     }
 
-    // Create the menu container
-    const menuContainer = document.createElement('div');
-    applyStyles(menuContainer, STYLES.menuContainer);
-
-    const menuHeader = document.createElement('div');
-    applyStyles(menuHeader, STYLES.menuHeader);
-
-    const menuTitle = document.createElement('span');
-    menuTitle.innerText = 'QA Menu';
-
-    const closeButton = document.createElement('span');
-    closeButton.innerText = '✖';
-    applyStyles(closeButton, STYLES.closeButton);
-
-    closeButton.addEventListener('click', function() {
-        menuContainer.style.display = 'none';
-        localStorage.setItem('QAMenuVisibility', 'none');
-    });
-
-    menuHeader.appendChild(menuTitle);
-    menuHeader.appendChild(closeButton);
-    menuContainer.appendChild(menuHeader);
-
-    document.body.appendChild(menuContainer);
-
     // Get menu visibility from local storage
     const menuVisibility = localStorage.getItem('QAMenuVisibility');
     menuContainer.style.display = menuVisibility === 'block' ? 'block' : 'none';
-
-    // Add the log toggle button
-    const logToggleButton = createToggleButton({
-        conditionKey: 'tv.logger.loglevel',
-        conditionValue1: '3',
-        conditionValue2: '5',
-        text1: 'Lon',
-        text2: 'Loff',
-        action1: function() { lon(true) },
-        action2: function() { loff() },
-    });
-
-    menuContainer.appendChild(logToggleButton);
-
-    // Add buttons to the menu
-    menuContainer.appendChild(createButton('Layout JSON', layoutJSON));
-    menuContainer.appendChild(createButton('User settings', userSettings));
-    menuContainer.appendChild(createButton('All studies', allStudies));
-
-    // Append the menu to the page body
-    document.body.appendChild(menuContainer);
-
-    // Add a keydown event listener to toggle menu visibility
-    document.addEventListener('keydown', function(event) {
-        if (event.altKey && event.code === 'KeyQ') {
-            if (menuContainer.style.display === 'none') {
-                menuContainer.style.display = 'block';
-                localStorage.setItem('QAMenuVisibility', 'block')
-            } else {
-                menuContainer.style.display = 'none';
-                localStorage.setItem('QAMenuVisibility', 'none');
-            }
-        }
-    });
-
-    displayFeatureToggles();
 
     const inputWrapper = document.createElement('div');
     inputWrapper.style.position = 'relative';
@@ -359,6 +405,18 @@
     const featureToggleButton = document.createElement('button');
     featureToggleButton.innerText = "Set";
     applyStyles(featureToggleButton, BUTTON_STYLES);
+    featureToggleButton.style.marginBottom = '20px';
+
+    function handleSetButtonClick() {
+        const inputValue = featureToggleInput.value;
+        if (inputValue) {
+            const key = 'forcefeaturetoggle.' + inputValue;
+            localStorage.setItem(key, 'true');
+            addFeatureToggle(key);
+        }
+    }
+
+    featureToggleButton.onclick = handleSetButtonClick;
 
     featureToggleButton.addEventListener('mouseover', function() {
         applyStyles(featureToggleButton, BUTTON_HOVER_STYLES);
@@ -373,5 +431,41 @@
     inputWrapper.appendChild(autoCompleteBox);
 
     menuContainer.appendChild(inputButtonContainer);
+
+    // Add the log toggle button
+    const logToggleButton = createToggleButton({
+        conditionKey: 'tv.logger.loglevel',
+        conditionValue1: '3',
+        conditionValue2: '5',
+        text1: 'Lon',
+        text2: 'Loff',
+        action1: function() { lon(true) },
+        action2: function() { loff() },
+    });
+
+    menuContainer.appendChild(logToggleButton);
+
+    // Add buttons to the menu
+    menuContainer.appendChild(createButton('Layout JSON', layoutJSON));
+    menuContainer.appendChild(createButton('User settings', userSettings));
+    menuContainer.appendChild(createButton('All studies', allStudies));
+
+    // Append the menu to the page body
+    document.body.appendChild(menuContainer);
+
+    // Add a keydown event listener to toggle menu visibility
+    document.addEventListener('keydown', function(event) {
+        if (event.altKey && event.code === 'KeyQ') {
+            if (menuContainer.style.display === 'none') {
+                menuContainer.style.display = 'block';
+                localStorage.setItem('QAMenuVisibility', 'block')
+            } else {
+                menuContainer.style.display = 'none';
+                localStorage.setItem('QAMenuVisibility', 'none');
+            }
+        }
+    });
+
+    initializeFeatureToggles();
 
 })();
