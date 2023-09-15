@@ -188,6 +188,23 @@
         console.log(settings);
     };
 
+    function getUserSettings() {
+        var settings = {};
+        TVSettings.keys().forEach(function(key) {
+            settings[key] = TVSettings.getValue(key);
+        });
+        return settings;
+    };
+
+    function initializeUserOverrides() {
+        const userSettings = getUserSettings();
+        for (const key in userSettings) {
+            if (key.startsWith('forcefeaturetoggle.')) {
+                addUserOverride(key);
+            }
+        }
+    }
+
     function layoutJSON() {
         var url = document.URL;
         url = url.replace('chart', 'json');
@@ -307,11 +324,22 @@
 
 
         const listTitle = document.createElement('h3');
-        listTitle.innerText = 'Featuretoggle overrides';
+        listTitle.innerText = 'Local storage overrides';
         applyStyles(listTitle, STYLES.listTitle);
 
         menuContainer.appendChild(listTitle);
         menuContainer.appendChild(featureTogglesList);
+
+        const userOverridesTitle = document.createElement('h3');
+        userOverridesTitle.innerText = 'User overrides';
+        applyStyles(userOverridesTitle, STYLES.listTitle);
+
+        const userOverridesList = document.createElement('ul');
+        applyStyles(userOverridesList, STYLES.featureTogglesList);
+
+        menuContainer.appendChild(userOverridesTitle);
+        menuContainer.appendChild(userOverridesList);
+
 
 
         const createToggleButton = ({ conditionKey, conditionValue1, text1, text2, action1, action2 }) => {
@@ -337,6 +365,8 @@
         };
 
 
+
+
     function initializeFeatureToggles() {
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
@@ -345,6 +375,60 @@
             }
         }
     }
+
+    const addUserOverride = (key) => {
+        const cleanedKey = key.replace('forcefeaturetoggle.', '');
+        const value = TVSettings.getValue(key) === "true";
+
+        const listItem = document.createElement('li');
+        applyStyles(listItem, STYLES.listItem);
+
+        const label = document.createElement('span');
+        label.textContent = `${cleanedKey}: `;
+        listItem.appendChild(label);
+
+        userOverridesList.appendChild(listItem);
+
+        const toggleAndDeleteContainer = document.createElement('div');
+        applyStyles(toggleAndDeleteContainer, TOGGLE_AND_DELETE_CONTAINER_STYLES);
+
+        const toggleContainer = document.createElement('div');
+        applyStyles(toggleContainer, TOGGLE_STYLES);
+        const toggleThumb = document.createElement('div');
+        applyStyles(toggleThumb, TOGGLE_THUMB_STYLES);
+
+        if (value) {
+            applyStyles(toggleContainer, TOGGLE_ON_STYLES);
+            applyStyles(toggleThumb, TOGGLE_THUMB_ON_STYLES);
+        }
+
+        toggleContainer.appendChild(toggleThumb);
+
+        toggleContainer.addEventListener('click', () => {
+            const currentValue = TVSettings.getValue(key) === "true";
+            TVSettings.setValue(key, String(!currentValue));
+
+            if (currentValue) {
+                removeStyles(toggleContainer, TOGGLE_ON_STYLES);
+                removeStyles(toggleThumb, TOGGLE_THUMB_ON_STYLES);
+            } else {
+                applyStyles(toggleContainer, TOGGLE_ON_STYLES);
+                applyStyles(toggleThumb, TOGGLE_THUMB_ON_STYLES);
+            }
+        });
+
+        const deleteButton = document.createElement('span');
+        deleteButton.textContent = '✖';
+        applyStyles(deleteButton, STYLES.closeButton);
+
+        deleteButton.addEventListener('click', () => {
+            userOverridesList.removeChild(listItem);
+            TVSettings.remove(key);
+        });
+
+        toggleAndDeleteContainer.append(toggleContainer, deleteButton);
+        listItem.appendChild(toggleAndDeleteContainer);
+    };
 
     function createButton(text, callback) {
         const button = document.createElement('button');
@@ -432,6 +516,22 @@
 
     featureToggleButton.onclick = handleSetButtonClick;
 
+    const setUserSettingsButton = document.createElement('button');
+    setUserSettingsButton.innerText = "Set in user settings";
+    applyStyles(setUserSettingsButton, BUTTON_STYLES);
+    setUserSettingsButton.style.marginBottom = '20px';
+
+    function handleSetUserSettingsButtonClick() {
+        const inputValue = featureToggleInput.value;
+        if (inputValue) {
+            const key = 'forcefeaturetoggle.' + inputValue;
+            TVSettings.setValue(key, 'true');
+            addUserOverride(key);
+        }
+    }
+
+    setUserSettingsButton.onclick = handleSetUserSettingsButtonClick;
+
     featureToggleButton.addEventListener('mouseover', function() {
         applyStyles(featureToggleButton, BUTTON_HOVER_STYLES);
     });
@@ -442,6 +542,7 @@
 
     inputWrapper.appendChild(featureToggleInput);
     inputButtonContainer.appendChild(featureToggleButton);
+    inputButtonContainer.appendChild(setUserSettingsButton);
     inputWrapper.appendChild(autoCompleteBox);
 
     menuContainer.appendChild(inputButtonContainer);
@@ -475,5 +576,7 @@
 
 
     initializeFeatureToggles();
+    initializeUserOverrides();
+
 
 })();
