@@ -59,7 +59,7 @@
         },
         listItem: {
             display: 'flex',
-            justifyContent: 'space-between', // Это свойство растягивает содержимое между левым и правым краями
+            justifyContent: 'space-between',
             alignItems: 'center',
             padding: '5px 0',
         }
@@ -112,7 +112,7 @@
         zIndex: '1000',
         marginTop: '5px',
         position: 'absolute',
-        top: '100%', // under input
+        top: '100%',
         left: '0',
     };
 
@@ -164,9 +164,9 @@
     const TOGGLE_AND_DELETE_CONTAINER_STYLES = {
         display: 'flex',
         alignItems: 'center',
-        gap: '5px', // Отступ между элементами
+        gap: '5px',
     };
-    
+
 
     function removeStyles(element, styleObject) {
         for (const key in styleObject) {
@@ -217,9 +217,9 @@
         console.log(scripts);
     };
 
-    // Create the menu container
 
-    function createContainer () {
+
+    const createContainer = () => {
         const menuContainer = document.createElement('div');
         applyStyles(menuContainer, STYLES.menuContainer);
 
@@ -227,32 +227,31 @@
         applyStyles(menuHeader, STYLES.menuHeader);
 
         const menuTitle = document.createElement('span');
-        menuTitle.innerText = 'QA Menu';
+        menuTitle.textContent = 'QA Menu';
 
         const closeButton = document.createElement('span');
-        closeButton.innerText = '✖';
+        closeButton.textContent = '✖';
         applyStyles(closeButton, STYLES.closeButton);
 
-        closeButton.addEventListener('click', function() {
+        closeButton.addEventListener('click', () => {
             menuContainer.style.display = 'none';
             localStorage.setItem('QAMenuVisibility', 'none');
         });
 
-        menuHeader.appendChild(menuTitle);
-        menuHeader.appendChild(closeButton);
+        menuHeader.append(menuTitle, closeButton);
         menuContainer.appendChild(menuHeader);
-
         document.body.appendChild(menuContainer);
 
         return menuContainer;
-    }
+    };
+
 
     const menuContainer = createContainer();
 
     const featureTogglesList = document.createElement('ul');
     applyStyles(featureTogglesList, STYLES.featureTogglesList);
 
-    function addFeatureToggle(key) {
+    const addFeatureToggle = (key) => {
         const cleanedKey = key.replace('forcefeaturetoggle.', '');
         const value = localStorage.getItem(key) === "true";
 
@@ -260,7 +259,7 @@
         applyStyles(listItem, STYLES.listItem);
 
         const label = document.createElement('span');
-        label.innerText = `${cleanedKey}: `;
+        label.textContent = `${cleanedKey}: `;
         listItem.appendChild(label);
 
         featureTogglesList.appendChild(listItem);
@@ -270,18 +269,17 @@
 
         const toggleContainer = document.createElement('div');
         applyStyles(toggleContainer, TOGGLE_STYLES);
-        if (value) {
-            applyStyles(toggleContainer, TOGGLE_ON_STYLES);
-        }
-
         const toggleThumb = document.createElement('div');
         applyStyles(toggleThumb, TOGGLE_THUMB_STYLES);
+
         if (value) {
+            applyStyles(toggleContainer, TOGGLE_ON_STYLES);
             applyStyles(toggleThumb, TOGGLE_THUMB_ON_STYLES);
         }
+
         toggleContainer.appendChild(toggleThumb);
 
-        toggleContainer.addEventListener('click', function() {
+        toggleContainer.addEventListener('click', () => {
             const currentValue = localStorage.getItem(key) === "true";
             localStorage.setItem(key, String(!currentValue));
 
@@ -295,22 +293,18 @@
         });
 
         const deleteButton = document.createElement('span');
-        deleteButton.innerText = '✖';
+        deleteButton.textContent = '✖';
         applyStyles(deleteButton, STYLES.closeButton);
-        
 
-        deleteButton.addEventListener('click', function() {
-            // Удалить элемент из DOM
+        deleteButton.addEventListener('click', () => {
             featureTogglesList.removeChild(listItem);
-        
-            // Удалить запись из localStorage
             localStorage.removeItem(key);
         });
-        
-        toggleAndDeleteContainer.appendChild(toggleContainer);
-        toggleAndDeleteContainer.appendChild(deleteButton);
-        listItem.appendChild(toggleAndDeleteContainer); 
-    }
+
+        toggleAndDeleteContainer.append(toggleContainer, deleteButton);
+        listItem.appendChild(toggleAndDeleteContainer);
+    };
+
 
         const listTitle = document.createElement('h3');
         listTitle.innerText = 'Featuretoggle overrides';
@@ -319,31 +313,29 @@
         menuContainer.appendChild(listTitle);
         menuContainer.appendChild(featureTogglesList);
 
-        // Function to create the toggle button with options
-    function createToggleButton(options) {
-        const button = document.createElement('button');
-        const conditionValue = localStorage.getItem(options.conditionKey);
 
-        // Set initial button text
-        button.innerText = conditionValue === String(options.conditionValue1) ? options.text1 : options.text2;
+        const createToggleButton = ({ conditionKey, conditionValue1, text1, text2, action1, action2 }) => {
+            const button = document.createElement('button');
+            const conditionValue = localStorage.getItem(conditionKey);
 
-        // button styles
-        applyStyles(button, STYLES.button);
+            button.textContent = conditionValue === String(conditionValue1) ? text1 : text2;
+            applyStyles(button, STYLES.button);
 
-        button.addEventListener('click', function() {
-            const conditionValue = localStorage.getItem(options.conditionKey);
+            button.addEventListener('click', () => {
+                const currentConditionValue = localStorage.getItem(conditionKey);
 
-            if (conditionValue === String(options.conditionValue1)) {
-                options.action1();
-                button.innerText = options.text2;
-            } else {
-                options.action2();
-                button.innerText = options.text1
-            }
-        });
+                if (currentConditionValue === String(conditionValue1)) {
+                    action1();
+                    button.textContent = text2;
+                } else {
+                    action2();
+                    button.textContent = text1;
+                }
+            });
 
-        return button;
-    }
+            return button;
+        };
+
 
     function initializeFeatureToggles() {
         for (let i = 0; i < localStorage.length; i++) {
@@ -354,7 +346,6 @@
         }
     }
 
-    // Function to create a button
     function createButton(text, callback) {
         const button = document.createElement('button');
         button.innerText = text;
@@ -363,7 +354,6 @@
         return button;
     }
 
-    // Get menu visibility from local storage
     const menuVisibility = localStorage.getItem('QAMenuVisibility');
     menuContainer.style.display = menuVisibility === 'block' ? 'block' : 'none';
 
@@ -374,59 +364,57 @@
     const inputButtonContainer = document.createElement('div');
     applyStyles(inputButtonContainer, CONTAINER_STYLES);
 
-    // Добавляем инпут
     const featureToggleInput = document.createElement('input');
     featureToggleInput.placeholder = 'Enter featuretoggle name...';
 
     featureToggleInput.addEventListener('focus', function() {
-        this.style.borderColor = '#2A66DD'; // TradingView blue on focus
+        this.style.borderColor = '#2A66DD';
     });
 
     featureToggleInput.addEventListener('blur', function() {
-        this.style.borderColor = TV_INPUT_STYLES.border.split(' ')[2]; // Reset to default border color
+        this.style.borderColor = TV_INPUT_STYLES.border.split(' ')[2];
     });
 
     applyStyles(featureToggleInput, TV_INPUT_STYLES);
 
-    // Autocompletion
     const autoCompleteBox = document.createElement('div');
     applyStyles(autoCompleteBox, AUTOCOMPLETE_STYLES);
-    autoCompleteBox.style.display = 'none';  // initially hidden
+    autoCompleteBox.style.display = 'none';
 
-    featureToggleInput.addEventListener('input', function() {
+    featureToggleInput.addEventListener('input', () => {
         const value = featureToggleInput.value.trim();
         autoCompleteBox.innerHTML = '';
         autoCompleteBox.style.display = 'none';
 
-        if (value) {
-            const suggestions = Object.keys(featureToggleState).filter(toggle => toggle.includes(value));
+        if (!value) return;
 
-            if (suggestions.length) {
-                suggestions.forEach(suggestion => {
-                    const item = document.createElement('div');
-                    item.innerText = suggestion;
-                    applyStyles(item, ITEM_STYLES);
+        const suggestions = Object.keys(featureToggleState).filter(toggle => toggle.includes(value));
 
-                    item.addEventListener('mouseover', function() {
-                        applyStyles(item, ITEM_HOVER_STYLES);
-                    });
+        if (!suggestions.length) return;
 
-                    item.addEventListener('mouseout', function() {
-                        item.style.backgroundColor = ITEM_STYLES.backgroundColor || 'transparent';
-                        item.style.color = ITEM_STYLES.color || '#a0a0a0';
-                    });
+        suggestions.forEach(suggestion => {
+            const item = document.createElement('div');
+            item.textContent = suggestion;
+            applyStyles(item, ITEM_STYLES);
 
-                    item.addEventListener('click', function() {
-                        featureToggleInput.value = suggestion;
-                        autoCompleteBox.style.display = 'none';
-                    });
+            item.addEventListener('mouseover', () => applyStyles(item, ITEM_HOVER_STYLES));
 
-                    autoCompleteBox.appendChild(item);
-                });
-                autoCompleteBox.style.display = 'block';
-            }
-        }
+            item.addEventListener('mouseout', () => {
+                item.style.backgroundColor = ITEM_STYLES.backgroundColor || 'transparent';
+                item.style.color = ITEM_STYLES.color || '#a0a0a0';
+            });
+
+            item.addEventListener('click', () => {
+                featureToggleInput.value = suggestion;
+                autoCompleteBox.style.display = 'none';
+            });
+
+            autoCompleteBox.appendChild(item);
+        });
+
+        autoCompleteBox.style.display = 'block';
     });
+
 
     const featureToggleButton = document.createElement('button');
     featureToggleButton.innerText = "Set";
@@ -458,7 +446,6 @@
 
     menuContainer.appendChild(inputButtonContainer);
 
-    // Add the log toggle button
     const logToggleButton = createToggleButton({
         conditionKey: 'tv.logger.loglevel',
         conditionValue1: '3',
@@ -471,26 +458,21 @@
 
     menuContainer.appendChild(logToggleButton);
 
-    // Add buttons to the menu
     menuContainer.appendChild(createButton('Layout JSON', layoutJSON));
     menuContainer.appendChild(createButton('User settings', userSettings));
     menuContainer.appendChild(createButton('All studies', allStudies));
 
-    // Append the menu to the page body
+
     document.body.appendChild(menuContainer);
 
-    // Add a keydown event listener to toggle menu visibility
-    document.addEventListener('keydown', function(event) {
+    document.addEventListener('keydown', (event) => {
         if (event.altKey && event.code === 'KeyQ') {
-            if (menuContainer.style.display === 'none') {
-                menuContainer.style.display = 'block';
-                localStorage.setItem('QAMenuVisibility', 'block')
-            } else {
-                menuContainer.style.display = 'none';
-                localStorage.setItem('QAMenuVisibility', 'none');
-            }
+            const isHidden = menuContainer.style.display === 'none';
+            menuContainer.style.display = isHidden ? 'block' : 'none';
+            localStorage.setItem('QAMenuVisibility', isHidden ? 'block' : 'none');
         }
     });
+
 
     initializeFeatureToggles();
 
