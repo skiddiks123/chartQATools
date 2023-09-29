@@ -8,7 +8,7 @@
 // @grant        none
 // ==/UserScript==
 
-(function() {
+(function () {
     'use strict';
 
     const STYLES = {
@@ -165,7 +165,23 @@
         display: 'flex',
         alignItems: 'center',
         gap: '5px',
+        marginLeft: '20px',
     };
+
+
+    function resaveSetting(key, isDeletion) {
+        if (isDeletion) {
+            var deletionSetting = {};
+            deletionSetting[key] = null;
+            $.post('/savesettings/', { delta: JSON.stringify(deletionSetting) });
+            return;
+        }
+
+        var settings = {};
+        settings[key] = TVSettings.getValue(key);
+        $.post('/savesettings/', { delta: JSON.stringify(settings) });
+    }
+
 
 
     function removeStyles(element, styleObject) {
@@ -182,7 +198,7 @@
 
     function userSettings() {
         var settings = {};
-        TVSettings.keys().forEach(function(key) {
+        TVSettings.keys().forEach(function (key) {
             settings[key] = TVSettings.getValue(key);
         });
         console.log(settings);
@@ -190,7 +206,7 @@
 
     function getUserSettings() {
         var settings = {};
-        TVSettings.keys().forEach(function(key) {
+        TVSettings.keys().forEach(function (key) {
             settings[key] = TVSettings.getValue(key);
         });
         return settings;
@@ -234,6 +250,203 @@
         console.log(scripts);
     };
 
+    function executeMigration() {
+        // ... (paste the entire provided code here) ...
+        const alphabet = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+        function randomHash(length) {
+            let res = '';
+            for (let i = 0; i < length; ++i) {
+                const index = Math.floor(Math.random() * alphabet.length);
+                res += alphabet[index];
+            }
+
+            return res;
+        }
+
+        function log(message, level) {
+            console.log(`[${new Date().toISOString()}] [${level}]\t${message}`);
+        }
+
+        function logInfo(message) {
+            log(message, 'INFO');
+        }
+
+        function logTrace(message) {
+            log(message, 'TRACE');
+        }
+
+        async function retLayoutJSON() {
+            var url = document.URL;
+            url = url.replace('chart', 'json');
+            try {
+                let response = await fetch(url);
+                let data = await response.text();
+                return data;
+            } catch (error) {
+                console.error(error);
+                return null;
+            }
+        }
+
+        function downloadStringAsFile(filename, content) {
+            const blob = new Blob([content], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        logTrace(`Processing...`);
+
+        (async function () {
+            const data = JSON.parse(await retLayoutJSON());
+
+            logTrace('Processing groups...');
+
+            data.content.charts.forEach(chart => {
+                const id = chart.chartId;
+                const storageData = data.charts_storage_data[id] ?? {};
+                const sources = storageData.sources ?? {};
+                const groups = storageData.drawing_groups ?? {};
+                logTrace(`processing groups on chart ${id}`);
+                Object.values(groups).forEach(group => {
+                    logTrace(`Processing group ${group.id} on chart ${id}`);
+                    const linesInGroup = Object.values(sources).filter(line => line.groupId === group.id);
+                    const syncedLinesInGroups = linesInGroup.filter(line => !!line.state.linkKey);
+                    const notSyncedLinesInGroups = linesInGroup.filter(line => !line.state.linkKey);
+                    const smallerList = syncedLinesInGroups.length < notSyncedLinesInGroups.length ? syncedLinesInGroups : notSyncedLinesInGroups;
+                    smallerList.forEach(line => {
+                        logInfo(`Excluding line ${line.id} from group ${line.groupId}`);
+                        delete line.groupId;
+                    });
+                });
+
+            });
+
+            const firstChartId = data.content.charts[0].chartId;
+
+            const chartIds = data.content.charts.slice(1).map(chart => chart.chartId);
+
+            const firstChartLineTools = data.charts_storage_data[firstChartId]?.sources ?? {};
+
+            logTrace(`Totally sources on the first chart: ${Object.keys(firstChartLineTools).length}`);
+
+            const linesToMigrate = Object.values(firstChartLineTools)
+                .filter(line => !!line.state.linkKey && line.state.sharingMode === undefined);
+
+            logTrace(`Lines to migrate to _shared: ${linesToMigrate.length}`);
+
+            let sharedState;
+            let invalidated = false;
+
+            if (linesToMigrate.length) {
+                sharedState = data.charts_storage_data['_shared'] = data.charts_storage_data['_shared'] ?? {};
+                sharedState.sources = sharedState.sources ?? {};
+                sharedState.drawing_groups = sharedState.drawing_groups ?? {};
+
+                const firstChartGroups = data.charts_storage_data[firstChartId].drawing_groups ?? {};
+
+                linesToMigrate.forEach(line => {
+                    line.state.sharingMode = 1;
+                    delete data.charts_storage_data[firstChartId].sources[line.id];
+                    // keep old value in shared if exists
+                    sharedState.sources[line.id] = sharedState.sources[line.id] ?? line;
+
+                    logInfo(`Move ${line.id} from chart ${firstChartId} to _shared`);
+
+                    // now check if we have to migrate group
+                    if (line.groupId) {
+                        const group = firstChartGroups[line.groupId];
+                        delete firstChartGroups[line.groupId];
+                        if (!sharedState.drawing_groups[line.groupId]) {
+                            sharedState.drawing_groups[line.groupId] = group;
+                            logInfo(`Move group ${line.groupId} from chart ${firstChartId} to _shared`);
+                        }
+                    }
+                    invalidated = true;
+                });
+            }
+
+            // process unlinking
+
+            // map shared lines by linkkey
+            const sharedByLinkKey = new Map(Object.values(sharedState?.sources ?? {}).map(line => [line.state.linkKey, line]));
+
+            chartIds
+                .map(id => {
+                    const res = data.charts_storage_data[id] ?? {};
+                    return { id: id, chart: res };
+                })
+                .forEach(pair => {
+                    const chart = pair.chart;
+                    const linesWithLinkKeyWithoutSharing = Object.values(chart.sources ?? {}).filter(line => !!line.state.linkKey && line.state.sharingMode === undefined);
+                    logTrace(`Got ${linesWithLinkKeyWithoutSharing.length} targets for migrations on chart ${pair.id}`);
+                    sharedState = sharedState ?? {};
+
+                    linesWithLinkKeyWithoutSharing.forEach(line => {
+                        logTrace(`Processing line ${line.id} with key ${line.state.linkKey}`);
+                        invalidated = true;
+                        if (sharedByLinkKey.has(line.state.linkKey)) {
+                            logInfo(`Remove ${line.id} from chart ${pair.id}`);
+                            delete chart.sources[line.id];
+                        } else {
+                            const newId = randomHash(8);
+                            logInfo(`Unsync ${line.id} on chart ${pair.id} with new id ${newId}`);
+                            line.state.sharingMode = 0;
+                            delete line.state.linkKey;
+                            delete chart.sources[line.id];
+                            line.id = newId;
+                            chart.sources[newId] = line;
+                        }
+                    });
+
+                    //remove all empty groups
+                    const allUsedGroups = new Set(Object.values(chart.sources ?? {}).filter(line => line.groupId).map(line => line.groupId));
+                    const allGroups = Object.keys(chart.drawing_groups ?? {});
+                    allGroups.filter(groupId => !allUsedGroups.has(groupId)).forEach((groupId) => {
+                        logInfo(`Remove empty group ${groupId} from chart ${pair.id}`);
+                        delete chart.drawing_groups[groupId];
+                    });
+
+                    // reassign id for all the groups
+                    allUsedGroups.forEach(groupId => {
+                        const newId = randomHash(8);
+                        logInfo(`Change group id from ${groupId} to ${newId} on chart ${pair.id}`);
+                        const group = chart.drawing_groups[groupId];
+                        group.id = newId;
+                        delete chart.drawing_groups[groupId];
+                        chart.drawing_groups[newId] = group;
+
+                        // move all the line tools
+                        Object.values(chart.sources ?? {})
+                            .filter(line => line.groupId === groupId)
+                            .forEach(line => line.groupId = newId);
+                    });
+                });
+
+            if (!invalidated) {
+                logTrace('No linetols have been migrated');
+                return;
+            }
+
+
+            if (sharedState) {
+                data.charts_storage_data._shared = sharedState;
+            }
+
+            const migrated = JSON.stringify(data.charts_storage_data, null, '\t');
+
+            downloadStringAsFile('migrated_data.json', migrated);
+
+            logTrace(`Migration is done`);
+
+
+
+        })();
+    }
 
 
     const createContainer = () => {
@@ -323,46 +536,46 @@
     };
 
 
-        const listTitle = document.createElement('h3');
-        listTitle.innerText = 'Local storage overrides';
-        applyStyles(listTitle, STYLES.listTitle);
+    const listTitle = document.createElement('h3');
+    listTitle.innerText = 'Local storage overrides';
+    applyStyles(listTitle, STYLES.listTitle);
 
-        menuContainer.appendChild(listTitle);
-        menuContainer.appendChild(featureTogglesList);
+    menuContainer.appendChild(listTitle);
+    menuContainer.appendChild(featureTogglesList);
 
-        const userOverridesTitle = document.createElement('h3');
-        userOverridesTitle.innerText = 'User overrides';
-        applyStyles(userOverridesTitle, STYLES.listTitle);
+    const userOverridesTitle = document.createElement('h3');
+    userOverridesTitle.innerText = 'User overrides';
+    applyStyles(userOverridesTitle, STYLES.listTitle);
 
-        const userOverridesList = document.createElement('ul');
-        applyStyles(userOverridesList, STYLES.featureTogglesList);
+    const userOverridesList = document.createElement('ul');
+    applyStyles(userOverridesList, STYLES.featureTogglesList);
 
-        menuContainer.appendChild(userOverridesTitle);
-        menuContainer.appendChild(userOverridesList);
+    menuContainer.appendChild(userOverridesTitle);
+    menuContainer.appendChild(userOverridesList);
 
 
 
-        const createToggleButton = ({ conditionKey, conditionValue1, text1, text2, action1, action2 }) => {
-            const button = document.createElement('button');
-            const conditionValue = localStorage.getItem(conditionKey);
+    const createToggleButton = ({ conditionKey, conditionValue1, text1, text2, action1, action2 }) => {
+        const button = document.createElement('button');
+        const conditionValue = localStorage.getItem(conditionKey);
 
-            button.textContent = conditionValue === String(conditionValue1) ? text1 : text2;
-            applyStyles(button, STYLES.button);
+        button.textContent = conditionValue === String(conditionValue1) ? text1 : text2;
+        applyStyles(button, STYLES.button);
 
-            button.addEventListener('click', () => {
-                const currentConditionValue = localStorage.getItem(conditionKey);
+        button.addEventListener('click', () => {
+            const currentConditionValue = localStorage.getItem(conditionKey);
 
-                if (currentConditionValue === String(conditionValue1)) {
-                    action1();
-                    button.textContent = text2;
-                } else {
-                    action2();
-                    button.textContent = text1;
-                }
-            });
+            if (currentConditionValue === String(conditionValue1)) {
+                action1();
+                button.textContent = text2;
+            } else {
+                action2();
+                button.textContent = text1;
+            }
+        });
 
-            return button;
-        };
+        return button;
+    };
 
 
 
@@ -407,6 +620,7 @@
         toggleContainer.addEventListener('click', () => {
             const currentValue = TVSettings.getValue(key) === "true";
             TVSettings.setValue(key, String(!currentValue));
+            resaveSetting(key);
 
             if (currentValue) {
                 removeStyles(toggleContainer, TOGGLE_ON_STYLES);
@@ -424,6 +638,7 @@
         deleteButton.addEventListener('click', () => {
             userOverridesList.removeChild(listItem);
             TVSettings.remove(key);
+            resaveSetting(key, true);
         });
 
         toggleAndDeleteContainer.append(toggleContainer, deleteButton);
@@ -451,11 +666,11 @@
     const featureToggleInput = document.createElement('input');
     featureToggleInput.placeholder = 'Enter featuretoggle name...';
 
-    featureToggleInput.addEventListener('focus', function() {
+    featureToggleInput.addEventListener('focus', function () {
         this.style.borderColor = '#2A66DD';
     });
 
-    featureToggleInput.addEventListener('blur', function() {
+    featureToggleInput.addEventListener('blur', function () {
         this.style.borderColor = TV_INPUT_STYLES.border.split(' ')[2];
     });
 
@@ -527,16 +742,18 @@
             const key = 'forcefeaturetoggle.' + inputValue;
             TVSettings.setValue(key, 'true');
             addUserOverride(key);
+            resaveSetting(key);
+
         }
     }
 
     setUserSettingsButton.onclick = handleSetUserSettingsButtonClick;
 
-    featureToggleButton.addEventListener('mouseover', function() {
+    featureToggleButton.addEventListener('mouseover', function () {
         applyStyles(featureToggleButton, BUTTON_HOVER_STYLES);
     });
 
-    featureToggleButton.addEventListener('mouseout', function() {
+    featureToggleButton.addEventListener('mouseout', function () {
         featureToggleButton.style.backgroundColor = BUTTON_STYLES.backgroundColor;
     });
 
@@ -553,8 +770,8 @@
         conditionValue2: '5',
         text1: 'Lon',
         text2: 'Loff',
-        action1: function() { lon(true) },
-        action2: function() { loff() },
+        action1: function () { lon(true) },
+        action2: function () { loff() },
     });
 
     menuContainer.appendChild(logToggleButton);
@@ -562,6 +779,7 @@
     menuContainer.appendChild(createButton('Layout JSON', layoutJSON));
     menuContainer.appendChild(createButton('User settings', userSettings));
     menuContainer.appendChild(createButton('All studies', allStudies));
+    menuContainer.appendChild(createButton('Migrate drawings', executeMigration));
 
 
     document.body.appendChild(menuContainer);
